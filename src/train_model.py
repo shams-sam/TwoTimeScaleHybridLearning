@@ -53,7 +53,7 @@ print(args.__dict__)
 print('+'*80)
 
 init_path = '{}/{}/{}_{}.init'.format(ckpt_path, 'init',
-                                         args.dataset, args.clf)
+                                      args.dataset, args.clf)
 best_path = os.path.join(ckpt_path, folder, 'models',  model_name + '.best')
 stop_path = os.path.join(ckpt_path, folder, 'models',  model_name + '.stop')
 
@@ -120,7 +120,7 @@ worker_models = {}
 for epoch in range(1, args.epochs + 1):
     train(
         args, model, fog_graph, workers, X_trains, y_trains, device, epoch,
-        loss_type, agg_type , args.rounds, args.graphs, args.d2d,
+        loss_type, agg_type, args.rounds, args.graphs, args.d2d,
         args.factor, args.shuffle_worker_data, worker_models)
     acc, loss = test(args, model, device, test_loader, best, epoch, loss_type)
     loss_mean, loss_std, acc_mean, acc_std = fog_test(

@@ -14,6 +14,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--histories', type=str, nargs='+', required=True)
 ap.add_argument('--labels', type=str, nargs='+', required=True)
 ap.add_argument('--name', type=str, required=True)
+ap.add_argument('--ncols', type=int, required=True)
 args = vars(ap.parse_args())
 args = Struct(**args)
 
@@ -35,7 +36,7 @@ ax2.set_xlabel('epochs')
 ax2.set_ylabel('loss')
 ax1.grid(ls='-.', lw=0.25)
 ax2.grid(ls='-.', lw=0.25)
-ax2.legend(loc='upper right', ncol=4,
+ax2.legend(loc='upper right', ncol=args.ncols,
            bbox_to_anchor=(-1.33, 1.1, 2.35, .1),
            mode='expand', frameon=False)
 print('Saving: ', args.name)
