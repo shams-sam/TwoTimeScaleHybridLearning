@@ -38,6 +38,12 @@ if args.paradigm == 'fog':
                          args.rounds, args.radius, args.d2d, args.factor,
                          args.eut_int, args.lut_int)
 
+    if args.eut_gamma != 1:
+        model_name += '_eut_gamma_{:.2f}'.format(args.eut_gamma)
+
+    if not args.rounds:
+        model_name += '_sigma_mul_{}'.format(args.sigma_mul)
+
 file_ = '{}/{}/logs/{}.log'.format(ckpt_path, folder, model_name)
 print("Logging: ", file_)
 if not args.dry_run:
@@ -116,11 +122,19 @@ y_std = []
 print('Pre-Training')
 test(args, model, device, test_loader, best, 1, loss_type)
 
+print('EUT Schedule')
+eut_schedule = [args.eut_int]
+while sum(eut_schedule) < (args.epochs + 1):
+    eut_schedule.append(np.ceil(eut_schedule[-1]*args.eut_gamma))
+eut_schedule = [sum(eut_schedule[0:x:1])
+                for x in range(len(eut_schedule)+1)][1:]
+print(eut_schedule)
+
 worker_models = {}
 for epoch in range(1, args.epochs + 1):
     train(
         args, model, fog_graph, workers, X_trains, y_trains, device, epoch,
-        loss_type, agg_type, args.rounds, args.graphs, args.d2d,
+        loss_type, agg_type, args.rounds, args.graphs, eut_schedule, args.d2d,
         args.factor, args.shuffle_worker_data, worker_models)
     acc, loss = test(args, model, device, test_loader, best, epoch, loss_type)
     loss_mean, loss_std, acc_mean, acc_std = fog_test(

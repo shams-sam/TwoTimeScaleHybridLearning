@@ -45,6 +45,7 @@ class Arguments():
         # laplacian consensus
         self.shuffle_worker_data = args.shuffle_worker_data
         self.rounds = args.rounds
+        self.sigma_mul = args.sigma_mul
         self.const_graph = args.const_graph
         self.radius = args.radius
         if self.radius == 'multi':
@@ -61,8 +62,9 @@ class Arguments():
 
         # graph topology erdos renyi or rgg
         self.topology = args.topology
-        self.eut_int = args.eut_int
         self.lut_int = args.lut_int
+        self.eut_int = args.eut_int
+        self.eut_gamma = args.eut_gamma
 
         # dry run
         self.dry_run = args.dry_run

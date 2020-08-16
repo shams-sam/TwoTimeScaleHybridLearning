@@ -46,10 +46,68 @@ def consensus_matrix(num_nodes, radius, factor, topology):
     return V
 
 
+def estimate_rounds(sigma, num_nodes_in_cluster, eps, lamda):
+    return (np.log2(sigma)-2*np.log2(
+        num_nodes_in_cluster*eps))/(2*np.log2(lamda))
+
+
+def estimate_delta(rho, fog_graph, grads):
+    clusters = [_ for _ in fog_graph if 'L1' in _]
+
+    num = 0
+    den = 0
+
+    for cluster in clusters:
+        cluster_grad = 0
+        rho_c = 0
+        for i in cluster:
+            rho_c += rho[i]
+            cluster_grad += rho[i]*grad[i].view(-1)
+        num += rho_c * (torch.norm(cluster_grad).item()**2)
+        den += rho_c * cluster_grad
+    den = torch.norm(den).item()**2
+
+    return num/den
+
+
+def get_cluster_eps(cluster, models, weights,
+                    nodes, param='weight'):
+    cluster_norms = []
+    for _ in cluster:
+        model = models[_].get()
+        weights = [val.flatten()
+                   for full_name, val in model.state_dict().items()]
+        weight = torch.cat(weights, dim=0)
+        norm = torch.norm(weight).item()
+        cluster_norms.append(norm)
+        models[_] = model.copy().send(nodes[_])
+    cluster_norms = np.array(cluster_norms)
+    cluster_norms = cluster_norms
+    eps = cluster_norms.max()-cluster_norms.min()
+
+    return eps
+
+
+def get_sigma(num_nodes, eps, factor):
+    return factor*(num_nodes**2)*(eps**2)
+
+
+def get_spectral_radius(matrix):
+    eig, _ = torch.eig(matrix)
+    return torch.max(eig).item()
+
+
 # when consensus is done using d2d
 # this gives closed form expression of such communication
-def laplacian_consensus(cluster, nodes, models, weights, V, rounds):
+def laplacian_consensus(cluster, nodes, models, weights, V, rounds, sigma_mul):
     num_nodes = len(cluster)
+
+    assert rounds != sigma_mul
+    if not rounds:
+        eps = get_cluster_eps(cluster, models, weights, nodes)
+        sigma = get_sigma(num_nodes, eps, sigma_mul)
+        lamda = get_spectral_radius(V - (1/num_nodes))
+        rounds = int(np.ceil(estimate_rounds(sigma, num_nodes, eps, lamda)))
     with torch.no_grad():
         weighted_models, ws = zip(*[
             [get_model_weights(models[_].get(), weights[_]), weights[_]]
@@ -62,7 +120,10 @@ def laplacian_consensus(cluster, nodes, models, weights, V, rounds):
         models[_].load_state_dict(model)
         models[_].send(nodes[_])
 
-    return model_sum
+    if sigma_mul:
+        return model_sum, [eps, sigma, lamda, rounds]
+
+    return model_sum, False
 
 
 def do_aggregation(epoch, interval):

@@ -32,8 +32,6 @@ def weight_gradient(w1, w2, lr):
     return torch.norm((w1.flatten()-w2.flatten())/lr).item()
 
 
-# for plotting gradient of global model under fogL
-# ideally should go to zero similar to a FL
 def model_gradient(model1, model2, lr):
     grads = defaultdict(list)
     for key, val in model1.items():

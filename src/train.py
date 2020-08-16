@@ -4,6 +4,7 @@ from model_op import add_model_weights, get_model_weights
 from multi_class_hinge_loss import multiClassHingeLoss
 import numpy as np
 from random import shuffle
+from terminaltables import AsciiTable
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
@@ -12,7 +13,7 @@ from utils import flip, get_dataloader
 
 def fog_train(args, model, fog_graph, nodes, X_trains, y_trains,
               device, epoch, loss_fn, consensus, rounds, radius,
-              d2d, factor, shuffle_worker_data, worker_models):
+              eut_schedule, d2d, factor, shuffle_worker_data, worker_models):
     # fog learning with model averaging
     if loss_fn == 'nll':
         loss_fn_ = F.nll_loss
@@ -63,8 +64,13 @@ def fog_train(args, model, fog_graph, nodes, X_trains, y_trains,
         worker_losses[w] = loss.item()
 
     var_radius = type(radius) == list
-    eut = do_aggregation(epoch, args.eut_int)
+    eut = epoch in eut_schedule
     lut = do_aggregation(epoch, args.lut_int)
+
+    log_list = []
+    log_head = ['div', 'sigma', 'lamda', 'rounds']
+    log_list.append(log_head)
+
     for layer_num in range(1, len(args.num_clusters)+1):
         aggregators = [_ for _ in nodes.keys() if 'L{}'.format(layer_num) in _]
         if eut or (layer_num == 1 and lut):
@@ -79,21 +85,25 @@ def fog_train(args, model, fog_graph, nodes, X_trains, y_trains,
 
                 if consensus == 'averaging' or \
                    flip(1-d2d) or (eut and not lut):
+                    print('averaging')
                     model_sum = averaging_consensus(children, worker_models,
                                                     worker_num_samples)
                     worker_models[a].load_state_dict(model_sum)
                 elif consensus == 'laplacian':
+                    print('laplacian')
                     if lut:
                         num_nodes_in_cluster = len(children)
                         V = consensus_matrix(num_nodes_in_cluster,
                                              radius if not var_radius
                                              else radius[layer_num-1],
                                              factor, args.topology)
-                        model_sum = laplacian_consensus(
+                        model_sum, log = laplacian_consensus(
                             children, nodes,
                             worker_models,
                             worker_num_samples,
-                            V.to(device), rounds)
+                            V.to(device), rounds, args.sigma_mul)
+                        if log:
+                            log_list.append(log)
                     else:
                         for child in children:
                             worker_models[child] = worker_models[child].send(
@@ -102,6 +112,10 @@ def fog_train(args, model, fog_graph, nodes, X_trains, y_trains,
                         agg_model = worker_models[a].get()
                         agg_model.load_state_dict(model_sum)
                         worker_models[a] = agg_model.send(nodes[a])
+
+    if len(log_list) > 1:
+        table = AsciiTable(log_list)
+        print(table.table)
 
     if eut:
         assert len(aggregators) == 1
