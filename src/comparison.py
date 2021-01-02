@@ -26,7 +26,7 @@ fig = plt.figure(figsize=(10, 4))
 ax1 = fig.add_subplot(121)
 ax2 = fig.add_subplot(122)
 
-colors = ['k.-', 'r.:', 'm.:', 'b.:', 'g.:', 'c.:', 'y.:', 'k.:']
+colors = ['k.-', 'r.:', 'm.:', 'b.:', 'g.:', 'c.:', 'y.:', 'k.:', 'r', 'b']
 if len(args.colors):
     colors = args.colors
 
