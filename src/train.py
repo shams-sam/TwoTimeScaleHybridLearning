@@ -85,12 +85,10 @@ def fog_train(args, model, fog_graph, nodes, X_trains, y_trains,
 
                 if consensus == 'averaging' or \
                    flip(1-d2d) or (eut and not lut):
-                    print('averaging')
                     model_sum = averaging_consensus(children, worker_models,
                                                     worker_num_samples)
                     worker_models[a].load_state_dict(model_sum)
                 elif consensus == 'laplacian':
-                    print('laplacian')
                     if lut:
                         num_nodes_in_cluster = len(children)
                         V = consensus_matrix(num_nodes_in_cluster,
