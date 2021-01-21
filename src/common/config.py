@@ -1,3 +1,5 @@
+ckpt_path = '../ckpts'
+
 num_trains = {
     'mnist': 60000,
     'cifar': 50000,

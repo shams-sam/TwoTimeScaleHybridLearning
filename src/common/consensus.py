@@ -1,6 +1,6 @@
 from collections import OrderedDict
-from distributor import get_connected_graph
-from model_op import add_model_weights, get_model_weights, scale_model_weights
+from data.distributor import get_connected_graph
+from models.model_op import add_model_weights, get_model_weights, scale_model_weights
 from networkx import laplacian_matrix
 import numpy as np
 import pickle as pkl
@@ -33,11 +33,8 @@ def laplacian_average(models, V, num_nodes, rounds):
     return model, models
 
 
-def consensus_matrix(num_nodes, radius, factor, topology):
-    if type(radius) == str:
-        graph = pkl.load(open('../graphs/{}'.format(radius), 'rb'))
-    else:
-        graph = get_connected_graph(num_nodes, radius, topology)
+def consensus_matrix(num_nodes, graph, factor, topology):
+    graph = pkl.load(open('../graphs/{}'.format(graph), 'rb'))
     max_deg = max(dict(graph.degree()).values())
     d = 1/(factor*max_deg)
     L = laplacian_matrix(graph).toarray()

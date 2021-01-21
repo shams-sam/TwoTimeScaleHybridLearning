@@ -1,7 +1,12 @@
+import common.config as cfg
 from math import factorial as f
+from models.fcn import FCN
+from models.svm import SVM
 import networkx as nx
 import numpy as np
+import os
 from random import random
+import sys
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from torchvision import datasets, transforms
@@ -30,6 +35,12 @@ def get_dataloader(data, targets, batchsize, shuffle=False):
                       shuffle=shuffle, num_workers=1)
 
 
+def get_device(args):
+    USE_CUDA = not args.no_cuda and torch.cuda.is_available()
+    torch.manual_seed(args.seed)
+    return torch.device("cuda" if USE_CUDA else "cpu")
+
+
 def get_laplacian(graph):
     return nx.laplacian_matrix(graph).toarray()
 
@@ -37,6 +48,81 @@ def get_laplacian(graph):
 def get_max_degree(graph):
     return max(dict(graph.degree()).values())
 
+
+def get_model(args):
+    if args.clf == 'fcn':
+        print('Initializing FCN...')
+        model_class = FCN
+    elif args.clf == 'svm':
+        print('Initializing SVM...')
+        model_class = SVM
+
+    device = get_device(args)
+    model = model_class(args.input_size, args.output_size).to(device)
+
+    paths = get_paths(args)
+    model.load_state_dict(torch.load(paths.init_path))
+    print('Load init: {}'.format(paths.init_path))
+
+    loss_type = 'hinge' if args.clf == 'svm' else 'nll'
+    agg_type = 'laplacian' if args.paradigm == 'hl' else 'averaging'
+    print("Loss: {}\nAggregation: {}".format(loss_type, agg_type))
+
+    return model, loss_type, agg_type
+
+
+def get_data_path(ckpt_path, args):
+    return '{}/{}_{}/data/n_classes_per_node_{}_stratify_{}' \
+            '_uniform_{}_repeat_{}.pkl'.format(
+                ckpt_path, args.dataset, args.num_workers, args.non_iid,
+                args.stratify, args.uniform_data, args.repeat)
+
+
+def get_eut_schedule(args):
+    if args.paradigm == 'fl':
+        return list(range(1, args.epochs+1))
+    
+    eut_schedule = [0]
+    add = np.random.randint(args.eut_range[0], args.eut_range[-1])
+    while eut_schedule[-1] + add < args.epochs:
+        eut_schedule.append(eut_schedule[-1] + add)
+        add = np.random.randint(args.eut_range[0], args.eut_range[-1])
+
+    return eut_schedule[1:] + [args.epochs]
+
+def get_paths(args):
+    ckpt_path = cfg.ckpt_path
+    folder = '{}_{}'.format(args.dataset, args.num_workers)
+    model_name = 'clf_{}_paradigm_{}_uniform_{}_non_iid_{}' \
+                 '_num_workers_{}_lr_{}_decay_{}_batch_{}'.format(
+                    args.clf, args.paradigm, args.uniform_data, args.non_iid,
+                    args.num_workers, args.lr, args.decay,
+                    args.batch_size)
+
+    if args.paradigm == 'hl':
+        model_name += '_delta_{}_zeta_{}_beta_{}_mu_{}_phi_{}_factor_{}' \
+                         '_eut_range_{}'.format(
+                             args.delta, args.zeta, args.beta, args.mu,
+                             args.phi, args.factor, '_'.join(map(str, args.eut_range)))
+
+    paths = {}
+    paths['model_name'] = model_name
+    paths['log_file'] = '{}/{}/logs/{}.log'.format(
+        ckpt_path, folder, model_name)
+    paths['init_path'] = '{}/{}/{}_{}.init'.format(
+        ckpt_path, 'init', args.dataset, args.clf)
+    paths['best_path'] = os.path.join(
+        ckpt_path, folder, 'models',  model_name + '.best')
+    paths['stop_path'] = os.path.join(
+        ckpt_path, folder, 'models',  model_name + '.stop')
+    paths['data_path'] = get_data_path(ckpt_path, args)
+    paths['plot_path'] = '{}/{}/plots/{}.jpg'.format(
+        ckpt_path, folder, model_name)
+    paths['hist_path'] = '{}/{}/history/{}.pkl'.format(
+        ckpt_path, folder, model_name)
+
+    return Struct(**paths)
+    
 
 def get_rho(graph, num_nodes, factor):
     max_d = get_max_degree(graph)
@@ -111,6 +197,16 @@ def get_trainloader(dataset, batch_size, shuffle=True):
 
 def in_range(elem, upper, lower):
     return (elem >= lower) and (elem <= upper)
+
+
+def init_logger(log_file, dry_run=False):
+    print("Logging: ", log_file)
+    std_out = sys.stdout    
+    if not dry_run:
+        log_file = open(log_file, 'w')
+        sys.stdout = log_file
+
+    return log_file, std_out
 
 
 def nCr(n, r):

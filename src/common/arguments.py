@@ -1,4 +1,4 @@
-import config as cfg
+import common.config as cfg
 
 
 class Arguments():
@@ -6,7 +6,7 @@ class Arguments():
             self,
             args,
     ):
-        # data config
+        # expt config
         self.dataset = args.dataset
         self.clf = args.clf
         self.paradigm = args.paradigm
@@ -14,11 +14,6 @@ class Arguments():
         self.num_test = cfg.num_tests[self.dataset]
         self.input_size = cfg.input_sizes[self.dataset]
         self.output_size = cfg.output_sizes[self.dataset]
-        self.stratify = args.stratify
-        self.uniform_data = args.uniform_data
-        self.shuffle_data = args.shuffle_data
-        self.non_iid = args.non_iid
-        self.repeat = args.repeat
 
         # worker clustering config
         self.num_workers = args.num_workers
@@ -33,40 +28,46 @@ class Arguments():
             self.test_batch_size = self.num_test
         self.epochs = args.epochs
         self.lr = args.lr
-        self.nesterov = args.nesterov
         self.decay = args.decay
         self.no_cuda = args.no_cuda
         self.seed = args.seed
+        self.stratify = args.stratify
+        self.uniform_data = args.uniform_data
+        self.shuffle_data = args.shuffle_data
+        self.non_iid = args.non_iid
+        self.repeat = args.repeat
 
-        # logging config
-        self.log_interval = args.log_interval
-        self.save_model = args.save_model
-
-        # laplacian consensus
-        self.shuffle_worker_data = args.shuffle_worker_data
-        self.rounds = args.rounds
-        self.sigma_mul = args.sigma_mul
+        # training config
+        self.factor = args.factor
+        self.topology = args.topology
         self.const_graph = args.const_graph
-        self.radius = args.radius
-        if self.radius == 'multi':
+        if self.const_graph:
+            self.graphs = ['topology_rgg_degree_3.2_rho_0.7500.pkl']
+        else:
             self.graphs = [
                 'topology_rgg_degree_2.0_rho_0.8750.pkl',
                 'topology_rgg_degree_2.0_rho_0.8750.pkl',
                 'topology_rgg_degree_3.2_rho_0.7500.pkl',
                 'topology_rgg_degree_4.0_rho_0.3750.pkl',
-            ][-len(self.num_clusters):]
-        else:
-            self.graphs='topology_rgg_degree_3.2_rho_0.7500.pkl'
-        self.d2d = args.d2d
-        self.factor = args.factor
+            ]
+        self.eut_range = args.eut_range
 
-        # graph topology erdos renyi or rgg
-        self.topology = args.topology
-        self.lut_int = args.lut_int
-        self.eut_int = args.eut_int
-        self.eut_gamma = args.eut_gamma
+        # logging config
 
-        # dry run
+        # constants
+        self.delta = args.delta
+        self.zeta = args.zeta
+        self.beta = args.beta
+        self.mu = args.mu
+        self.phi = args.phi
+
+        # derived
+        self.omega = self.zeta/(2.0*self.beta)
+        self.kappa = self.mu/(1.0*self.beta)
+
+        # logging and debug
+        self.log_intv = args.log_intv
+        self.save_model = args.save_model
         self.dry_run = args.dry_run
         if self.dry_run:
             self.save_model = False
