@@ -97,7 +97,6 @@ for (idx, history), n in zip(enumerate(args.baselines), ('central')):
     delay[n] = miles*d_glob
 
 print(milestones)
-exit()
 print(cost)
 print(power)
 # exit()
