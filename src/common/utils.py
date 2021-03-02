@@ -20,6 +20,13 @@ def decimal_format(num, places=4):
     return round(num, places)
 
 
+def eut_add(eut_range):
+    return eut_range[0] \
+        if len(eut_range)==1 \
+        else np.random.randint(
+                eut_range[0], eut_range[-1])
+
+
 def flip(p):
     return True if random() < p else False
 
@@ -28,7 +35,7 @@ def get_average_degree(graph):
     return sum(dict(graph.degree()).values())/len(graph)
 
 
-def get_dataloader(data, targets, batchsize, shuffle=False):
+def get_dataloader(data, targets, batchsize, shuffle=True):
     dataset = TensorDataset(data, targets)
 
     return DataLoader(dataset, batch_size=batchsize,
@@ -79,31 +86,61 @@ def get_data_path(ckpt_path, args):
 
 
 def get_eut_schedule(args):
-    if args.paradigm == 'fl':
+    if not args.eut_range:
         return list(range(1, args.epochs+1))
-    
+
+    if args.tau_max:
+        return [min(args.eut_range), args.epochs]
+
     eut_schedule = [0]
-    add = np.random.randint(args.eut_range[0], args.eut_range[-1])
+    np.random.seed(args.eut_seed)
+    add = eut_add(args.eut_range)
+
     while eut_schedule[-1] + add < args.epochs:
         eut_schedule.append(eut_schedule[-1] + add)
-        add = np.random.randint(args.eut_range[0], args.eut_range[-1])
+        add = eut_add(args.eut_range)
 
     return eut_schedule[1:] + [args.epochs]
+
+
+def get_lut_schedule(args):
+    if not args.lut_intv:
+        return []
+    
+    lut_schedule = [0]
+    while lut_schedule[-1] + args.lut_intv < args.epochs:
+        lut_schedule.append(lut_schedule[-1] + args.lut_intv)
+
+    return lut_schedule[1:]
 
 def get_paths(args):
     ckpt_path = cfg.ckpt_path
     folder = '{}_{}'.format(args.dataset, args.num_workers)
-    model_name = 'clf_{}_paradigm_{}_uniform_{}_non_iid_{}' \
-                 '_num_workers_{}_lr_{}_decay_{}_batch_{}'.format(
-                    args.clf, args.paradigm, args.uniform_data, args.non_iid,
-                    args.num_workers, args.lr, args.decay,
-                    args.batch_size)
+    if args.dry_run:
+        model_name = 'debug'
+    else:
+        model_name = 'clf_{}_paradigm_{}_uniform_{}_non_iid_{}' \
+                     '_num_workers_{}_lr_{}_decay_{}_batch_{}'.format(
+                         args.clf, args.paradigm, args.uniform_data, args.non_iid,
+                         args.num_workers, args.lr, args.decay,
+                         args.batch_size)
 
     if args.paradigm == 'hl':
-        model_name += '_delta_{}_zeta_{}_beta_{}_mu_{}_phi_{}_factor_{}' \
-                         '_eut_range_{}'.format(
+        if args.lut_intv:
+            model_name += '_eut_{}_lut_{}_rounds_{}'.format(
+                args.eut_range[0], args.lut_intv, args.rounds)
+        else:
+            model_name += '_delta_{}_zeta_{}_beta_{}_mu_{}_phi_{}_factor_{}'.format(
                              args.delta, args.zeta, args.beta, args.mu,
-                             args.phi, args.factor, '_'.join(map(str, args.eut_range)))
+                             args.phi, args.factor)
+    if args.tau_max:
+        model_name += '_T1_{}_Tmax_{}_E_{}_D_{}'.format(
+            min(args.eut_range), args.tau_max, args.e_frac, args.d_frac)
+    elif args.eut_range and not args.lut_intv:
+        model_name += '_eut_range_{}'.format('_'.join(map(str, args.eut_range)))
+
+    if args.cs:
+        model_name += '_cs_{}'.format('_'.join(map(str, args.cs)))
 
     paths = {}
     paths['model_name'] = model_name
@@ -119,6 +156,8 @@ def get_paths(args):
     paths['plot_path'] = '{}/{}/plots/{}.jpg'.format(
         ckpt_path, folder, model_name)
     paths['hist_path'] = '{}/{}/history/{}.pkl'.format(
+        ckpt_path, folder, model_name)
+    paths['aux_path'] = '{}/{}/history/{}_aux.pkl'.format(
         ckpt_path, folder, model_name)
 
     return Struct(**paths)
@@ -201,7 +240,7 @@ def in_range(elem, upper, lower):
 
 def init_logger(log_file, dry_run=False):
     print("Logging: ", log_file)
-    std_out = sys.stdout    
+    std_out = sys.stdout
     if not dry_run:
         log_file = open(log_file, 'w')
         sys.stdout = log_file

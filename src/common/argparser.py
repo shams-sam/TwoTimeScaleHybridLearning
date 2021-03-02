@@ -10,6 +10,10 @@ def argparser():
     parser.add_argument('--clf', type=str, required=True)
     parser.add_argument('--paradigm', type=str, required=True)
 
+    # stop criterion
+    parser.add_argument('--accuracy', type=float, required=True)
+    parser.add_argument('--patience', type=int, required=True)
+
     # clustering config
     parser.add_argument('--num-workers', type=int, required=True)
     parser.add_argument('--num-clusters', type=int, nargs='+', required=True)
@@ -35,13 +39,22 @@ def argparser():
     parser.add_argument('--topology', type=str, required=False, default='rgg')
     parser.add_argument('--const-graph', type=booltype, required=False, default=True)
     parser.add_argument('--eut-range', type=int, nargs='+', required=False)
+    parser.add_argument('--eut-seed', type=int, required=False)
+    parser.add_argument('--lut-intv', type=int, required=False)
+    parser.add_argument('--rounds', type=int, required=False)
 
     # constants
-    parser.add_argument('--delta', type=float, required=False)
-    parser.add_argument('--zeta', type=float, required=False)
     parser.add_argument('--beta', type=float, required=False)
     parser.add_argument('--mu', type=float, required=False)
+    parser.add_argument('--delta', type=float, required=False)
+    parser.add_argument('--zeta', type=float, required=False)
     parser.add_argument('--phi', type=float, required=False)
+    parser.add_argument('--sigma', type=float, required=False)
+    parser.add_argument('--xi', type=float, required=False)
+    parser.add_argument('--tau-max', type=int, required=False)
+    parser.add_argument('--e-frac', type=float, required=False)
+    parser.add_argument('--d-frac', type=float, required=False)
+    parser.add_argument('--cs', type=float, nargs='+', required=False)
 
     # logging and debug
     parser.add_argument('--log-intv', type=int, required=False, default=1)
