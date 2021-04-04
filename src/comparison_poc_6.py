@@ -96,4 +96,4 @@ fig.subplots_adjust(wspace=0.25)
 plt.savefig('../ckpts/{}_{}/plots/{}'.format(
     args.dataset, args.num_nodes, args.name),
             bbox_inches='tight',
-            pad_inches=0.5, dpi=args.dpi)
+            dpi=args.dpi)

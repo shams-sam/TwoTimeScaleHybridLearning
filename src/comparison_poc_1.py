@@ -2,7 +2,7 @@ import argparse
 import matplotlib
 import matplotlib.pyplot as plt
 import pickle as pkl
-from common.utils import Struct
+from common.utils import Struct, history_parser
 
 
 matplotlib.rcParams.update({'font.size': 20})
@@ -36,20 +36,8 @@ if len(args.colors):
 
 hist1, hist2, hist3 = args.histories[:6], args.histories[6:12], args.histories[12:]
 
-def parser(dataset, num_nodes, history):
-    h = pkl.load(
-        open('../ckpts/{}_{}/history/{}'.format(
-            dataset, num_nodes, history), 'rb'))
-    if len(h) == 8:
-        x_ax, y_ax, l_test, rounds, eps, eta_phi, beta, mu = h
-    else:
-        x_ax, y_ax, l_test, rounds, eps, eta_phi = h
-
-    return x_ax, y_ax, l_test
-
-
 for idx, history in enumerate(hist1):
-    x_ax, y_ax, l_test = parser(args.dataset, args.num_nodes, history)
+    x_ax, y_ax, l_test = history_parser(args.dataset, args.num_nodes, history)
     x_ax = x_ax[:args.epochs]
     y_ax = y_ax[:args.epochs]
     l_test = [_*100 for _ in l_test[:args.epochs]]
@@ -66,7 +54,7 @@ ax4.grid()
 
 
 for idx, history in enumerate(hist2):
-    x_ax, y_ax, l_test = parser(args.dataset, args.num_nodes, history)
+    x_ax, y_ax, l_test = history_parser(args.dataset, args.num_nodes, history)
     x_ax = x_ax[:args.epochs]
     y_ax = y_ax[:args.epochs]
     l_test = [_*100 for _ in l_test[:args.epochs]]
@@ -83,7 +71,7 @@ ax5.grid()
 
 
 for idx, history in enumerate(hist3):
-    x_ax, y_ax, l_test = parser(args.dataset, args.num_nodes, history)
+    x_ax, y_ax, l_test = history_parser(args.dataset, args.num_nodes, history)
     x_ax = x_ax[:args.epochs]
     y_ax = y_ax[:args.epochs]
     l_test = [_*100 for _ in l_test[:args.epochs]]

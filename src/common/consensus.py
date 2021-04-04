@@ -231,9 +231,8 @@ def optimize_tau(rounds, args, alpha, t):
     if args.cs:
         c1, c2, c3 = args.cs
     else:
-        c1, c2, c3 = 10**(-4), 10**(2), 0.5*10**(4)
-
-    print(c1, c2, c3)
+        # c1, c2, c3 = 10**(-4), 10**(2), 0.5*10**(4)  # for svms
+        c1, c2, c3 = 10**(-8), 10**(2), 0.5*10**(1)
 
     optimal_tau = 0
     optimal_cost = float('inf')
@@ -243,6 +242,7 @@ def optimize_tau(rounds, args, alpha, t):
     for tau in range(1, args.tau_max+1):
         gamma_t = sum([sum(r[:tau])
                        for _, r in rounds.items()])
+        print((nc*e_glob + nc*cs*gamma_t*e_d2d), tau, (d_glob + gamma_t*d_d2d))
         a = c1 * (nc*e_glob + nc*cs*gamma_t*e_d2d)/tau
         b = c2 * (d_glob + gamma_t*d_d2d)/tau
         c = c3 * (1-((t+alpha)/(t+tau+alpha)))

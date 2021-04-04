@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle as pkl
 import common.config as cfg
-from common.utils import Struct
+from common.utils import Struct, history_parser
 
 
 matplotlib.rcParams.update({'font.size': 20})
@@ -82,7 +82,7 @@ for idx, history in enumerate(args.histories):
     ) for i in range(1, len(eut_schedule))
                 ])
     power[tag] = (num_eut*nc*e_glob*d_glob) + (nw*sum(rounds[:miles])*e_d2d*d_d2d)
-    delay[tag] = (num_eut*d_glob) + (sum(rounds[:miles])*d_d2d)
+    delay[tag] = (num_eut*d0_glob) + (sum(rounds[:miles])*d_d2d)
 
 x_ticks = []
 k1, k2, k3 = 10**4, 10**4, 10**2
@@ -104,9 +104,7 @@ for i, e in enumerate(args.fracs):
                 width=0.2, color=colors[j])
 
 for (idx, history), n in zip(enumerate(args.baselines), ['c', 'f']):
-    x_ax, y_ax, l_test, rounds, eps, eta_phi = pkl.load(
-        open('../ckpts/{}_{}/history/{}'.format(
-            args.dataset, args.num_nodes, history), 'rb'))
+    x_ax, y_ax, l_test = history_parser(args.dataset, args.num_nodes, history)
     miles = get_milestone_epoch(y_ax, args.accuracy)
     milestones[n] = miles
     eut_schedule = list(range(1, 100))
@@ -150,12 +148,12 @@ if len(args.baselines) > 1:
     ax2.hlines(y=power['f']/k2, xmin=0.5, xmax=4.5, color='r')
     ax3.hlines(y=delay['f']/k3, xmin=0.5, xmax=4.5, color='r')
 
+print(milestones)
+print(power)
+print(delay)
+
 ax1.xaxis.set_ticks([1, 2, 3, 4])
 ax1.xaxis.set_ticklabels(args.fracs)
-# majorLocator = matplotlib.ticker.MultipleLocator(0.5)
-# ax1.yaxis.set_ticks([2**(-3), 2**(-2), 2**(-1), 2**(-0), 2**(1)])
-# ax1.get_yaxis().set_major_locator(majorLocator)
-# ax1.yaxis.set_ticklabels([r'$2^(-3)$', r'$2^(-2)$', r'$2^(-1)$', r'$2^(-0)$', r'$2^(1)$'])
 ax2.xaxis.set_ticks([1, 2, 3, 4])
 ax2.xaxis.set_ticklabels(args.fracs)
 ax3.xaxis.set_ticks([1, 2, 3, 4])
@@ -193,4 +191,4 @@ fig.subplots_adjust(wspace=0.4)
 plt.savefig('../ckpts/{}_{}/plots/{}'.format(
     args.dataset, args.num_nodes, args.name),
             bbox_inches='tight',
-            pad_inches=0.5, dpi=args.dpi)
+            dpi=args.dpi)

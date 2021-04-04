@@ -5,6 +5,7 @@ from models.svm import SVM
 import networkx as nx
 import numpy as np
 import os
+import pickle as pkl
 from random import random
 import sys
 import torch
@@ -233,6 +234,17 @@ def get_trainloader(dataset, batch_size, shuffle=True):
                                                            (0.3530,))])),
             batch_size=batch_size, shuffle=shuffle, **kwargs)
 
+
+def history_parser(dataset, num_nodes, history):
+    h = pkl.load(
+        open('../ckpts/{}_{}/history/{}'.format(
+            dataset, num_nodes, history), 'rb'))
+    if len(h) == 8:
+        x_ax, y_ax, l_test, rounds, eps, eta_phi, beta, mu = h
+    else:
+        x_ax, y_ax, l_test, rounds, eps, eta_phi = h
+
+    return x_ax, y_ax, l_test
 
 def in_range(elem, upper, lower):
     return (elem >= lower) and (elem <= upper)
