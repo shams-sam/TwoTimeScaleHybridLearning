@@ -36,12 +36,15 @@ def argparser():
 
     # consensus config
     parser.add_argument('--factor', type=int, required=False, default=2)
-    parser.add_argument('--topology', type=str, required=False, default='rgg')
-    parser.add_argument('--const-graph', type=booltype, required=False, default=True)
     parser.add_argument('--eut-range', type=int, nargs='+', required=False)
     parser.add_argument('--eut-seed', type=int, required=False)
     parser.add_argument('--lut-intv', type=int, required=False)
     parser.add_argument('--rounds', type=int, required=False)
+    # channel
+    # 0: default graphs
+    # 1: csi graphs
+    # 2: no csi graphs
+    parser.add_argument('--channel', type=int, required=False, default=0)
 
     # constants
     parser.add_argument('--beta', type=float, required=False)

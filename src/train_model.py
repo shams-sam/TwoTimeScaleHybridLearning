@@ -64,6 +64,8 @@ y_std = []
 h_rounds = []
 h_eps = []
 h_eta_phi = []
+h_models = []
+h_grads = []
 
 # non_zero_grad for getting a true_grad in fog_train
 # grad is not used in fcn case
@@ -84,6 +86,7 @@ print('+'*80)
 print('Training')
 print('epoch \t tr loss (acc) (mean+-std) \t test loss (acc) \t EUT')
 worker_models = {}
+worker_memory = {}
 
 # not calculated if lut given manually (used for proof of concept)
 kwargs = {}
@@ -110,19 +113,19 @@ extension = 0
 epoch = 1
 # for epoch in range(1, args.epochs + 1):
 while epoch <= args.epochs:
-    if args.paradigm == 'fl':
+    if args.paradigm in ['fl', 'fp']:
         worker_models, acc_mean, acc_std, \
-            loss_mean, loss_std = fl_train(
+            loss_mean, loss_std, worker_grads = fl_train(
                 args, model, fog_graph, workers, X_trains, y_trains,
                 device, epoch, eut_schedule, loss_type,
-                worker_models)
+                worker_models, worker_memory)
         eut = 'N/A'
         avg_rounds = -1
         avg_eps = -2
         avg_eta_phi = -3
     elif args.paradigm == 'hl':
         worker_models, acc_mean, acc_std, loss_mean, loss_std, \
-            avg_rounds, avg_eps, avg_eta_phi, \
+            worker_grads, avg_rounds, avg_eps, avg_eta_phi, \
             aggregate_eps, aggregate_rounds, aggregate_sc, aggregate_lamda, \
             eut = tthl_train(
                 args, model, fog_graph, workers, X_trains, y_trains, device,
@@ -157,7 +160,6 @@ while epoch <= args.epochs:
                 predicted_rounds, args, kwargs.alpha, epoch)
             eut_schedule.append(int(optimal_tau))
             eut_schedule = sorted(eut_schedule)
-            print(eut_schedule)
         else:
             assert args.eut_range
 
@@ -172,6 +174,8 @@ while epoch <= args.epochs:
     h_rounds.append(avg_rounds)
     h_eps.append(avg_eps)
     h_eta_phi.append(avg_eta_phi)
+    h_models.append(worker_models)
+    h_grads.append(worker_grads)
 
     if epoch % args.log_intv == 0:
         print(

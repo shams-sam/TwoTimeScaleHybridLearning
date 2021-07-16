@@ -3,9 +3,8 @@ from common.consensus import averaging_consensus, consensus_matrix, \
     estimate_delta, get_cluster_eps, get_node_weights, get_spectral_radius, \
     do_sync, laplacian_consensus
 from common.utils import get_dataloader
-from models.model_op import get_tensor_sum, \
-    calc_beta, calc_mu, calc_sigma, \
-    get_flattened_grads, get_flattened_weights, get_model_weights
+from models.model_op import get_tensor_sum, calc_sigma, get_flattened_grads, \
+    get_flattened_weights, get_model_weights
 from models.multi_class_hinge_loss import multiClassHingeLoss
 import numpy as np
 from terminaltables import AsciiTable
@@ -14,7 +13,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-def train_step(model, data, target, loss_fn, args, device):
+def train_step(model, data, target, loss_fn, args, device, prev_model=False):
     worker_optim = optim.SGD(
         params=model.parameters(),
         lr=args.lr, weight_decay=args.decay)
@@ -40,6 +39,9 @@ def train_step(model, data, target, loss_fn, args, device):
         if idx == 1:
             assert len(grads) == 2
             break
+    if args.fp_mu:
+        for name, param in model.named_parameters():
+            param.grad.add_(args.fp_mu, param - prev_model[name])
     sigma = calc_sigma(grads)
     worker_optim.step()
 
@@ -136,26 +138,25 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
     avg_rounds = 0
     avg_eps = 0
     avg_eta_phi = 0
+    increment = True
     for a in aggregators:
         if eut:
             worker_models[a] = model.copy().send(nodes[a])
             children = fog_graph[a]
             selected = children[np.random.randint(0, len(children))]
             selected_nodes.append(selected)
+            args.eut_round += increment
+            increment = False
+            args.lut_round = 1
         else:
             children = fog_graph[a]
             for child in children:
                 worker_models[child].move(nodes[a])
             num_nodes_in_cluster = len(children)
-            V = consensus_matrix(num_nodes_in_cluster,
-                                 args.graphs[0] if args.const_graph
-                                 else args.graphs[
-                                         np.random.randint(
-                                             0, len(args.graphs)+1)],
-                                 args.factor, args.topology)
+            V = consensus_matrix(num_nodes_in_cluster, args)
             eps = get_cluster_eps(children, worker_models, nodes)
             lamda = get_spectral_radius(V - (1/num_nodes_in_cluster))
-            if args.lut_intv:  # if lut_intv and rounds given manually 
+            if args.lut_intv:  # if lut_intv and rounds given manually
                 rounds = args.rounds if lut else 0
             else:  # else calculate using tthl algorithm
                 eps = eps.clip(min=cfg.F['eps_min'])
@@ -177,6 +178,8 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
                              '{:.6f}'.format(eta), rounds])
 
             if rounds > 0:
+                args.lut_round += increment
+                increment = False
                 laplacian_consensus(children, nodes, worker_models,
                                     V.to(device), rounds)
                 for child in children:
@@ -228,20 +231,21 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
     acc = np.array([_ for dump, _ in worker_accs.items()])
 
     return worker_models, acc.mean(), acc.std(), \
-        loss.mean(), loss.std(), avg_rounds, avg_eps, avg_eta_phi, \
-        aggregate_eps, aggregate_rounds, aggregate_sc, \
+        loss.mean(), loss.std(), worker_grads, avg_rounds, avg_eps, \
+        avg_eta_phi, aggregate_eps, aggregate_rounds, aggregate_sc, \
         aggregate_lamda, eut
 
 
 def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
              device, epoch, eut_schedule, loss_fn,
-             worker_models):
+             worker_models, worker_memory):
     # federated learning with model averaging
     loss_fn_ = get_loss_fn(loss_fn)
     model.train()
 
     worker_losses = {}
     worker_accs = {}
+    worker_grads = {}
 
     # send data, model to workers
     # setup optimizer for each worker
@@ -253,13 +257,20 @@ def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
         if downlink:
             worker_models[w] = model.copy().send(nodes[w])
         node_model = worker_models[w].get()
+        if w not in worker_memory:
+            prev_model = get_model_weights(node_model)
+        else:
+            prev_model = worker_memory[w]
         data = worker_data[w].get()
         target = worker_targets[w].get()
-        w_loss, w_acc, _, _ = train_step(node_model, data, target,
-                                         loss_fn_, args, device)
+        w_loss, w_acc, _, w_grad = train_step(
+            node_model, data, target, loss_fn_, args, device, prev_model)
+        worker_memory[w] = get_model_weights(node_model)
         worker_models[w] = node_model.send(nodes[w])
         worker_losses[w] = w_loss
         worker_accs[w] = w_acc
+        worker_grads[w] = w_grad
+
 
     if epoch in eut_schedule:
         agg = 'L1_W0'
@@ -280,7 +291,8 @@ def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
     loss = np.array([_ for dump, _ in worker_losses.items()])
     acc = np.array([_ for dump, _ in worker_accs.items()])
 
-    return worker_models, acc.mean(), acc.std(), loss.mean(), loss.std()
+    return worker_models, acc.mean(), acc.std(), loss.mean(), loss.std(), \
+        worker_grads
 
 
 def test(args, model, device, test_loader, best, epoch=0, loss_fn='nll'):

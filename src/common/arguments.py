@@ -6,6 +6,7 @@ class Arguments():
             self,
             args,
     ):
+
         # expt config
         self.dataset = args.dataset
         self.clf = args.clf
@@ -41,29 +42,22 @@ class Arguments():
         self.non_iid = args.non_iid
         self.repeat = args.repeat
 
-        # training config
+        # distributed training config
         self.factor = args.factor
-        self.topology = args.topology
-        self.const_graph = args.const_graph
-        if self.const_graph:
-            self.graphs = ['topology_rgg_degree_3.2_rho_0.7500.pkl']
-        else:
-            self.graphs = [
-                'topology_rgg_degree_2.0_rho_0.8750.pkl',
-                'topology_rgg_degree_2.0_rho_0.8750.pkl',
-                'topology_rgg_degree_3.2_rho_0.7500.pkl',
-                'topology_rgg_degree_4.0_rho_0.3750.pkl',
-            ]
         self.eut_range = args.eut_range
         self.eut_seed = args.eut_seed
         self.lut_intv = args.lut_intv
         self.rounds = args.rounds
+        self.channel = args.channel
+        self.eut_round = 1
+        self.lut_round = 1
 
         # logging config
 
         # constants
         self.beta = args.beta
         self.mu = args.mu
+        self.fp_mu = 1.0 if args.paradigm == 'fp' else 0.0
         self.delta = args.delta
         self.zeta = args.zeta
         self.phi = args.phi

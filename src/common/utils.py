@@ -142,6 +142,10 @@ def get_paths(args):
 
     if args.cs:
         model_name += '_cs_{}'.format('_'.join(map(str, args.cs)))
+    if args.channel == 1:
+        model_name += '_csi'
+    elif args.channel == 2:
+        model_name += '_nocsi'
 
     paths = {}
     paths['model_name'] = model_name
@@ -183,7 +187,7 @@ def get_testloader(dataset, batch_size, shuffle=True):
     kwargs = {}
     if dataset == 'mnist':
         return torch.utils.data.DataLoader(
-            datasets.MNIST('../data', train=False,
+            datasets.MNIST(cfg.data_path, train=False,
                            transform=transforms.Compose([
                                transforms.ToTensor(),
                                transforms.Normalize((0.1307,), (0.3081,))
@@ -191,7 +195,7 @@ def get_testloader(dataset, batch_size, shuffle=True):
             batch_size=batch_size, shuffle=shuffle, **kwargs)
     elif dataset == 'cifar':
         return torch.utils.data.DataLoader(
-            datasets.CIFAR10('../data', train=False,
+            datasets.CIFAR10(cfg.data_path, train=False,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.5, 0.5, 0.5),
@@ -199,7 +203,7 @@ def get_testloader(dataset, batch_size, shuffle=True):
             batch_size=batch_size, shuffle=shuffle, **kwargs)
     elif dataset == 'fmnist':
         return torch.utils.data.DataLoader(
-            datasets.FashionMNIST('../data', train=False,
+            datasets.FashionMNIST(cfg.data_path, train=False,
                                   transform=transforms.Compose([
                                       transforms.ToTensor(),
                                       transforms.Normalize((0.2861,),
@@ -211,7 +215,7 @@ def get_trainloader(dataset, batch_size, shuffle=True):
     kwargs = {}
     if dataset == 'mnist':
         return torch.utils.data.DataLoader(
-            datasets.MNIST('../data', train=True,
+            datasets.MNIST(cfg.data_path, train=True,
                            transform=transforms.Compose([
                                transforms.ToTensor(),
                                transforms.Normalize((0.1307,), (0.3081,))
@@ -219,7 +223,7 @@ def get_trainloader(dataset, batch_size, shuffle=True):
             batch_size=batch_size, shuffle=shuffle, **kwargs)
     elif dataset == 'cifar':
         return torch.utils.data.DataLoader(
-            datasets.CIFAR10('../data', train=True,
+            datasets.CIFAR10(cfg.data_path, train=True,
                              transform=transforms.Compose([
                                  transforms.ToTensor(),
                                  transforms.Normalize((0.5, 0.5, 0.5),
@@ -227,7 +231,7 @@ def get_trainloader(dataset, batch_size, shuffle=True):
             batch_size=batch_size, shuffle=shuffle, **kwargs)
     elif dataset == 'fmnist':
         return torch.utils.data.DataLoader(
-            datasets.FashionMNIST('../data', train=True,
+            datasets.FashionMNIST(cfg.data_path, train=True,
                                   transform=transforms.Compose([
                                       transforms.ToTensor(),
                                       transforms.Normalize((0.2861,),

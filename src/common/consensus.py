@@ -1,12 +1,24 @@
+import os
+
 from collections import OrderedDict
 import common.config as cfg
 from models.model_op import get_tensor_sum, get_model_weights
-from networkx import laplacian_matrix
+from networkx import Graph, laplacian_matrix
 import numpy as np
-import pickle as pkl
+from random import choice
 from sklearn.linear_model import LinearRegression
 from terminaltables import AsciiTable
 import torch
+
+
+def adj_to_graph(path):
+    mat = np.genfromtxt(path, delimiter=',')
+    rows, cols = np.where(mat == 1)
+    edges = zip(rows, cols)
+    graph = Graph()
+    graph.add_edges_from(edges)
+
+    return graph
 
 
 def approx_eps(data, x_max):
@@ -41,10 +53,28 @@ def averaging_consensus(cluster, models, weights):
     return model_sum
 
 
-def consensus_matrix(num_nodes, graph, factor, topology):
-    graph = pkl.load(open('../graphs/{}'.format(graph), 'rb'))
+def consensus_matrix(num_nodes, args):
+    # choose from adj matrices randomly
+    if args.channel == 0:
+        gpath = os.path.join(
+            cfg.graph_path,
+            choice(os.listdir(cfg.graph_path))
+        )
+    elif args.channel == 1:
+        gpath = os.path.join(
+            '{}_csi'.format(cfg.graph_path),
+            'clust_CSI{}.csv'.format(args.eut_round)
+        )
+    elif args.channel == 2:
+        gpath = os.path.join(
+            '{}_nocsi'.format(cfg.graph_path),
+            'clust_noCSI({}-{}).csv'.format(args.eut_round, args.lut_round)
+        )
+    print(gpath)
+    graph = adj_to_graph(gpath)
+
     max_deg = max(dict(graph.degree()).values())
-    d = 1/(factor*max_deg)
+    d = 1/(args.factor*max_deg)
     L = laplacian_matrix(graph).toarray()
     V = torch.Tensor(np.eye(num_nodes) - d*L)
 

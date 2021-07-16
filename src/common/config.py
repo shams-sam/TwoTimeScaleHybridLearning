@@ -1,4 +1,6 @@
 ckpt_path = '../ckpts'
+data_path = '/data'
+graph_path = '../graphs'
 
 num_trains = {
     'mnist': 60000,
