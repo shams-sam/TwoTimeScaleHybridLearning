@@ -1,5 +1,6 @@
 import common.config as cfg
 from math import factorial as f
+from models.cnn import CNN
 from models.fcn import FCN
 from models.svm import SVM
 import networkx as nx
@@ -58,6 +59,9 @@ def get_max_degree(graph):
 
 
 def get_model(args):
+    if args.clf == 'cnn':
+        print('Initializing CNN...')
+        model_class = CNN
     if args.clf == 'fcn':
         print('Initializing FCN...')
         model_class = FCN
