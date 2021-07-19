@@ -82,7 +82,7 @@ for idx, history in enumerate(args.histories):
     ) for i in range(1, len(eut_schedule))
                 ])
     power[tag] = (num_eut*nc*e_glob*d_glob) + (nw*sum(rounds[:miles])*e_d2d*d_d2d)
-    delay[tag] = (num_eut*d0_glob) + (sum(rounds[:miles])*d_d2d)
+    delay[tag] = (num_eut*d_glob) + (sum(rounds[:miles])*d_d2d)
 
 x_ticks = []
 k1, k2, k3 = 10**4, 10**4, 10**2

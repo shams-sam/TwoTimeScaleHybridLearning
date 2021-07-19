@@ -179,6 +179,8 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
 
             if rounds > 0:
                 args.lut_round += increment
+                if args.lut_round > 20:
+                    args.lut_round = 1
                 increment = False
                 laplacian_consensus(children, nodes, worker_models,
                                     V.to(device), rounds)

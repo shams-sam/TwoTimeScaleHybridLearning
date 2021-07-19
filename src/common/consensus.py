@@ -70,7 +70,6 @@ def consensus_matrix(num_nodes, args):
             '{}_nocsi'.format(cfg.graph_path),
             'clust_noCSI({}-{}).csv'.format(args.eut_round, args.lut_round)
         )
-    print(gpath)
     graph = adj_to_graph(gpath)
 
     max_deg = max(dict(graph.degree()).values())
