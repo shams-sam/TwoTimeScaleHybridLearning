@@ -1,5 +1,5 @@
 ckpt_path = '../ckpts'
-data_path = '/data'
+data_path = '../../data'
 graph_path = '../graphs'
 
 num_trains = {

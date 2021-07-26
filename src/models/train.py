@@ -39,7 +39,7 @@ def train_step(model, data, target, loss_fn, args, device, prev_model=False):
         if idx == 1:
             assert len(grads) == 2
             break
-    if args.fp_mu:
+    if args.paradigm in ['fp', 'fpn']:
         for name, param in model.named_parameters():
             param.grad.add_(args.fp_mu, param - prev_model[name])
     sigma = calc_sigma(grads)
@@ -95,7 +95,7 @@ def send_to_worker(nodes, X_trains, y_trains):
 def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
                device, epoch, loss_fn, consensus, eut_schedule, lut_schedule,
                worker_models, aggregate_eps, aggregate_rounds,
-               aggregate_sc, aggregate_lamda, kwargs):
+               aggregate_sc, aggregate_lamda, kwargs, prev_model=False):
 
     model.train()
     loss_fn_ = get_loss_fn(loss_fn)
@@ -107,7 +107,8 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
         _ = send_to_worker(
             nodes, X_trains, y_trains)
     aggregators = [_ for _ in nodes.keys() if 'L1' in _]
-    weight_nodes = get_node_weights(fog_graph, nodes, aggregators, len(workers))
+    weight_nodes = get_node_weights(
+        fog_graph, nodes, aggregators, len(workers))
 
     eta = args.lr if args.lr else kwargs.gamma/(epoch+kwargs.alpha)
     args.lr = eta
@@ -121,7 +122,7 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
         data = worker_data[w].get()
         target = worker_targets[w].get()
         w_loss, w_acc, w_sigma, w_grad = train_step(
-            node_model, data, target, loss_fn_, args, device)
+            node_model, data, target, loss_fn_, args, device, prev_model)
         worker_models[w] = node_model.send(nodes[w])
         worker_losses[w] = w_loss
         worker_accs[w] = w_acc
@@ -164,7 +165,7 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
                     (eta*kwargs.phi)/(num_nodes_in_cluster*eps))/np.log(lamda)))
                 rounds = int(max(0, rounds))  # *cfg.F['gamma'])
 
-                if rounds: # c: consensus rounds data, nc: no consensus rounds data
+                if rounds:  # c: consensus rounds data, nc: no consensus rounds data
                     aggregate_eps['{}_c'.format(a)].append((epoch, eps))
                 else:
                     aggregate_eps['{}_nc'.format(a)].append((epoch, eps))
@@ -185,10 +186,12 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
                 laplacian_consensus(children, nodes, worker_models,
                                     V.to(device), rounds)
                 for child in children:
-                    worker_models[child] = worker_models[child].send(nodes[child])
+                    worker_models[child] = worker_models[child].send(
+                        nodes[child])
             else:
                 for child in children:
-                    worker_models[child] = worker_models[child].get().send(nodes[child])
+                    worker_models[child] = worker_models[child].get().send(
+                        nodes[child])
         if not args.lut_intv:
             avg_eta_phi += eta*kwargs.phi
     avg_rounds /= len(aggregators)
@@ -240,7 +243,7 @@ def tthl_train(args, model, fog_graph, nodes, X_trains, y_trains,
 
 def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
              device, epoch, eut_schedule, loss_fn,
-             worker_models, worker_memory):
+             worker_models, worker_memory, prev_model=False):
     # federated learning with model averaging
     loss_fn_ = get_loss_fn(loss_fn)
     model.train()
@@ -259,10 +262,6 @@ def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
         if downlink:
             worker_models[w] = model.copy().send(nodes[w])
         node_model = worker_models[w].get()
-        if w not in worker_memory:
-            prev_model = get_model_weights(node_model)
-        else:
-            prev_model = worker_memory[w]
         data = worker_data[w].get()
         target = worker_targets[w].get()
         w_loss, w_acc, _, w_grad = train_step(
@@ -272,7 +271,6 @@ def fl_train(args, model, fog_graph, nodes, X_trains, y_trains,
         worker_losses[w] = w_loss
         worker_accs[w] = w_acc
         worker_grads[w] = w_grad
-
 
     if epoch in eut_schedule:
         agg = 'L1_W0'

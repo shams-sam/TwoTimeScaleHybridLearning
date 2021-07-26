@@ -6,7 +6,7 @@ from common.consensus import approx_eps, approx_rounds, estimate_alpha, \
 from common.utils import get_device, get_eut_schedule, get_lut_schedule, \
     get_model, get_paths, get_testloader, init_logger, Struct
 from data.distributor import get_fog_graph
-from models.model_op import get_num_params
+from models.model_op import get_num_params, get_model_weights
 from models.train import tthl_train, fl_train, test
 import os
 import pickle as pkl
@@ -113,17 +113,22 @@ extension = 0
 epoch = 1
 # for epoch in range(1, args.epochs + 1):
 while epoch <= args.epochs:
-    if args.paradigm in ['fl', 'fp']:
+    if args.paradigm in ['fl', 'fpn']:  # fpn is fedprox with no consensus
+        prev_model = get_model_weights(
+            model) if args.paradigm == 'fpn' else False
         worker_models, acc_mean, acc_std, \
             loss_mean, loss_std, worker_grads = fl_train(
                 args, model, fog_graph, workers, X_trains, y_trains,
                 device, epoch, eut_schedule, loss_type,
-                worker_models, worker_memory)
+                worker_models, worker_memory, prev_model)
         eut = 'N/A'
         avg_rounds = -1
         avg_eps = -2
         avg_eta_phi = -3
-    elif args.paradigm == 'hl':
+    elif args.paradigm in ['fp', 'hl']:
+        # try consensus on fed_prox and fed_avg
+        prev_model = get_model_weights(
+            model) if args.paradigm == 'fp' else False
         worker_models, acc_mean, acc_std, loss_mean, loss_std, \
             worker_grads, avg_rounds, avg_eps, avg_eta_phi, \
             aggregate_eps, aggregate_rounds, aggregate_sc, aggregate_lamda, \
@@ -131,7 +136,7 @@ while epoch <= args.epochs:
                 args, model, fog_graph, workers, X_trains, y_trains, device,
                 epoch, loss_type, agg_type, eut_schedule, lut_schedule,
                 worker_models, aggregate_eps, aggregate_rounds,
-                aggregate_sc, aggregate_lamda, kwargs)
+                aggregate_sc, aggregate_lamda, kwargs, prev_model)
 
         if eut and args.tau_max:
             kwargs.alpha = estimate_alpha(args, kwargs)
@@ -174,15 +179,15 @@ while epoch <= args.epochs:
     h_rounds.append(avg_rounds)
     h_eps.append(avg_eps)
     h_eta_phi.append(avg_eta_phi)
-    h_models.append(worker_models)
-    h_grads.append(worker_grads)
+    # h_models.append(worker_models)
+    # h_grads.append(worker_grads)
 
     if epoch % args.log_intv == 0:
         print(
             '{} \t {:.2f}+-{:.2f} ({:.2f}+-{:.2f}) \t {:.5f} ({:.4f}) \t {}'
             .format(
-                  epoch, loss_mean, loss_std,
-                  acc_mean, acc_std, loss, acc, eut))
+                epoch, loss_mean, loss_std,
+                acc_mean, acc_std, loss, acc, eut))
 
     if args.save_model and acc > best:
         best = acc

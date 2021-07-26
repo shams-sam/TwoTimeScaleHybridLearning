@@ -24,9 +24,9 @@ def decimal_format(num, places=4):
 
 def eut_add(eut_range):
     return eut_range[0] \
-        if len(eut_range)==1 \
+        if len(eut_range) == 1 \
         else np.random.randint(
-                eut_range[0], eut_range[-1])
+        eut_range[0], eut_range[-1])
 
 
 def flip(p):
@@ -47,7 +47,7 @@ def get_dataloader(data, targets, batchsize, shuffle=True):
 def get_device(args):
     USE_CUDA = not args.no_cuda and torch.cuda.is_available()
     torch.manual_seed(args.seed)
-    return torch.device("cuda" if USE_CUDA else "cpu")
+    return torch.device("cuda:2" if USE_CUDA else "cpu")
 
 
 def get_laplacian(graph):
@@ -85,9 +85,9 @@ def get_model(args):
 
 def get_data_path(ckpt_path, args):
     return '{}/{}_{}/data/n_classes_per_node_{}_stratify_{}' \
-            '_uniform_{}_repeat_{}.pkl'.format(
-                ckpt_path, args.dataset, args.num_workers, args.non_iid,
-                args.stratify, args.uniform_data, args.repeat)
+        '_uniform_{}_repeat_{}.pkl'.format(
+            ckpt_path, args.dataset, args.num_workers, args.non_iid,
+            args.stratify, args.uniform_data, args.repeat)
 
 
 def get_eut_schedule(args):
@@ -130,7 +130,7 @@ def get_paths(args):
                          args.num_workers, args.lr, args.decay,
                          args.batch_size)
 
-    if args.paradigm == 'hl':
+    if args.paradigm in ['fp', 'hl']:
         if args.lut_intv:
             model_name += '_eut_{}_lut_{}_rounds_{}'.format(
                 args.eut_range[0], args.lut_intv, args.rounds)
