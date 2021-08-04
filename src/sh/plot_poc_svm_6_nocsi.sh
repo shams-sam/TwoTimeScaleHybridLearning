@@ -20,7 +20,7 @@ fmnist(){
 	   --t1 10 --histories \
 	   clf_svm_paradigm_hl_uniform_True_non_iid_1_num_workers_125_lr_0.0_decay_1e-05_batch_16_delta_10.0_zeta_0.001_beta_20.0_mu_1.0_phi_0.0_factor_2_T1_10_Tmax_40_E_0.06_D_0.06_cs_{}_nocsi.pkl \
 	   clf_svm_paradigm_hl_uniform_True_non_iid_1_num_workers_125_lr_0.0_decay_1e-05_batch_16_delta_10.0_zeta_0.001_beta_20.0_mu_1.0_phi_0.0_factor_2_T1_10_Tmax_40_E_0.06_D_0.06_cs_{}_nocsi_aux.pkl \
-	   --name behaviour_of_tau_nocsi.eps
+	   --name behaviour_of_tau_nocsi.png
 	   
 }
 

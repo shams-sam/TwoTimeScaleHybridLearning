@@ -45,7 +45,7 @@ fmnist(){
 	   clf_svm_paradigm_hl_uniform_True_non_iid_1_num_workers_125_lr_0.001_decay_1e-05_batch_16_eut_20_lut_5_rounds_5_nocsi.pkl \
 	   clf_svm_paradigm_hl_uniform_True_non_iid_1_num_workers_125_lr_0.001_decay_1e-05_batch_16_eut_20_lut_5_rounds_10_nocsi.pkl \
 	   clf_svm_paradigm_hl_uniform_True_non_iid_1_num_workers_125_lr_0.001_decay_1e-05_batch_16_eut_20_lut_5_rounds_25_nocsi.pkl \
-       --name comparison_clf_svm_non_iid_varying_num_workers_125_lr_0.001_decay_1e-05_batch_16_eut_20_lut_5_rounds_varying_nocsi.eps
+       --name comparison_clf_svm_non_iid_varying_num_workers_125_lr_0.001_decay_1e-05_batch_16_eut_20_lut_5_rounds_varying_nocsi.png
 }
 
 
